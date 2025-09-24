@@ -1,0 +1,30 @@
+/* ---------- RESPONSIVE ---------- */
+@media (max-width: 900px) {
+  .ui-container--right {
+    left: 50%;
+    right: auto;
+    transform: translate(-50%, -5%);
+    top: 56%;
+    width: min(92%, 640px);
+  }
+  .skill-cloud {
+    position: relative;
+    left: 50%;
+    transform: translateX(-50%);
+    top: 4%;
+    width: 90%;
+    height: auto;
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .hero-section { min-height: 60vh; }
+  .space-header { padding: 0 1rem; }
+  .nav-links { gap: 1rem; }
+}
+
+@media (max-width: 520px) {
+  .ui-container { padding: 0.9rem; border-radius: 12px; }
+  .skill-badge { width: 100px; height: 46px; font-size: 13px; }
+  .ui-container--right { top: 62%; width: 92%; left: 50%; transform: translateX(-50%); }
+  .logo-text { font-size: 0.9rem; }
+  .logo-icon { font-size: 1.5rem; }
+}
