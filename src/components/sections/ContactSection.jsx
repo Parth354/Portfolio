@@ -101,7 +101,7 @@ export default function ContactSection() {
           <motion.a
             whileHover={{ scale: 1.15 }}
             whileTap={{ scale: 0.95 }}
-            href="https://www.instagram.com/parthb3544"
+            href="https://www.instagram.com/parthb354"
             target="_blank"
             rel="noopener noreferrer"
             className="text-white hover:text-cyan-400 transition-colors"
