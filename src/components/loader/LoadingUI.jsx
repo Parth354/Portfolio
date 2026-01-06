@@ -1,96 +1,95 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 
-export default function LoadingUI({ progress, isExiting }) {
+// Extremely lightweight, instant-loading version
+const LoadingUI = memo(({ progress = 0, isExiting = false }) => {
   const [dots, setDots] = useState('');
 
-  const loadingStages = [
-    'Fueling the Engine',
-    'Oh! Elon Musk stopping',
-    'Elon busy fighting Trump',
-    'Almost There...',
-    'Welcome to the Cosmos',
+  // Clean, thematic messages (no memes)
+  const stages = [
+    'Igniting Core',
+    'Charging Systems',
+    'Aligning Orbit',
+    'Entering Void',
+    'Cosmos Ready',
   ];
-  const currentStage = Math.min(
-    Math.floor((progress / 100) * loadingStages.length),
-    loadingStages.length
-  );
+
+  const stage = Math.min(Math.floor((progress / 100) * stages.length), stages.length - 1);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setDots(prev => (prev.length < 3 ? prev + '.' : ''));
+    const id = setInterval(() => {
+      setDots(d => d.length < 3 ? d + '.' : '');
     }, 500);
-    return () => clearInterval(interval);
+    return () => clearInterval(id);
   }, []);
 
-  const uiStyle = {
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
-    transform: 'translate(-50%, -50%)',
-    textAlign: 'center',
-    color: '#fff',
-    zIndex: 10,
-    pointerEvents: 'none', // Prevent interaction
-    opacity: isExiting ? 0 : 1,
-    transition: 'opacity 1.5s ease-out',
-    animation: 'float 3s ease-in-out infinite',
-  };
-
-  const textStyle = {
-    fontSize: '1.6rem',
-    fontWeight: 500,
-    background: 'linear-gradient(90deg, #ffffffff, #e91e63)',
-    WebkitBackgroundClip: 'text',
-    WebkitTextFillColor: 'transparent',
-    textShadow: '0 0 25px rgba(0, 0, 0, 1), 0 0 40px rgba(212, 54, 107, 0.5)',
-    marginBottom: '1rem',
-  };
-
-  const dotsStyle = {
-    display: 'inline-block',
-    fontSize: '2rem',
-    letterSpacing: '0.2em',
-    color: 'rgba(255,255,255,0.8)',
-    animation: 'dots 1.5s steps(4, end) infinite',
-  };
-
-  const dotStyle = index => ({
-    width: '14px',
-    height: '14px',
-    borderRadius: '50%',
-    margin: '0 4px',
-    background:
-      progress > index * 20
-        ? 'linear-gradient(135deg, #ffffffff, #e91e63)'
-        : 'rgba(138, 43, 226, 0.2)',
-    boxShadow:
-      progress > index * 20
-        ? '0 0 15px rgba(138, 43, 226, 0.8), 0 0 25px rgba(255, 255, 255, 0.5)'
-        : 'none',
-    transform: progress > index * 20 ? 'scale(1.4)' : 'scale(1)',
-    transition: 'all 0.4s ease',
-  });
-
   return (
-    <div style={uiStyle}>
-      <div style={textStyle}>
-        {loadingStages[currentStage]}
-      </div>
-      <div style={{ display: 'flex', justifyContent: 'center' }}>
-        {[0, 1, 2, 3, 4].map(i => (
-          <div key={i} style={dotStyle(i)} />
-        ))}
+    <>
+      {/* Full-screen overlay - renders instantly */}
+      <div
+        style={{
+          position: 'fixed',
+          inset: 0,
+          background: '#000',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          pointerEvents: 'none',
+          zIndex: 9999,
+          opacity: isExiting ? 0 : 1,
+          transition: 'opacity 1.2s ease-out',
+        }}
+      >
+        {/* Main text - gradient for cosmic feel */}
+        <div
+          style={{
+            fontSize: '2rem',
+            fontWeight: '600',
+            background: 'linear-gradient(90deg, #ffffff, #a0c4ff, #ffb1ff)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            letterSpacing: '0.08em',
+            marginBottom: '1.5rem',
+          }}
+        >
+          {stages[stage]}
+          <span style={{ opacity: 0.8 }}>{dots}</span>
+        </div>
+
+        {/* Simple glowing dots - minimal but effective */}
+        <div style={{ display: 'flex', gap: '12px' }}>
+          {[0, 1, 2, 3, 4].map(i => (
+            <div
+              key={i}
+              style={{
+                width: '12px',
+                height: '12px',
+                borderRadius: '50%',
+                background: progress >= (i + 1) * 20
+                  ? 'linear-gradient(135deg, #a0c4ff, #ff6bcb)'
+                  : 'rgba(255,255,255,0.1)',
+                boxShadow: progress >= (i + 1) * 20
+                  ? '0 0 16px rgba(160, 196, 255, 0.8)'
+                  : 'none',
+                transform: `scale(${progress >= (i + 1) * 20 ? 1.2 : 0.8})`,
+                transition: 'all 0.5s ease',
+              }}
+            />
+          ))}
+        </div>
       </div>
 
-      {/* Floating animation keyframes */}
-      <style>
-        {`
-          @keyframes float {
-            0%, 100% { transform: translate(-50%, -50%) translateY(0px); }
-            50% { transform: translate(-50%, -50%) translateY(-10px); }
-          }
-        `}
-      </style>
-    </div>
+      {/* Tiny inline keyframes - no external CSS needed */}
+      <style jsx>{`
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+      `}</style>
+    </>
   );
-}
+});
+
+LoadingUI.displayName = 'LoadingUI';
+
+export default LoadingUI;

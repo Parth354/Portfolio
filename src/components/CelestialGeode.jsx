@@ -1,4 +1,3 @@
-// src/components/CelestialGeode.jsx
 import { useRef, forwardRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Sphere, Points, PointMaterial } from "@react-three/drei";

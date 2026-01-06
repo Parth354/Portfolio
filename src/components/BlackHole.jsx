@@ -1,4 +1,3 @@
-// src/components/BlackHole.jsx
 import { useRef, forwardRef, useMemo } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Sphere, Torus } from "@react-three/drei";
@@ -12,19 +11,19 @@ const BlackHole = forwardRef(({ visible = true, ...props }, ref) => {
   const fogRef = useRef();
   const dustRef = useRef();
 
-  // Pre-generate dust cloud
+  // Pre-generate dust cloud (increased count and adjusted radius for better distribution)
   const dustGeometry = useMemo(() => {
     const geom = new THREE.BufferGeometry();
-    const count = 3000;
+    const count = 5000;
     const positions = new Float32Array(count * 3);
 
     for (let i = 0; i < count; i++) {
-      const r = THREE.MathUtils.randFloat(10, 35);
+      const r = THREE.MathUtils.randFloat(8, 40);
       const theta = THREE.MathUtils.randFloat(0, Math.PI * 2);
-      const phi = THREE.MathUtils.randFloat(0, Math.PI);
+      const phi = THREE.MathUtils.randFloat(0.3, Math.PI - 0.3); // Avoid poles for flatter distribution
 
       const x = r * Math.sin(phi) * Math.cos(theta);
-      const y = r * Math.sin(phi) * Math.sin(theta);
+      const y = r * Math.sin(phi) * Math.sin(theta) * 0.2; // Flatten slightly
       const z = r * Math.cos(phi);
 
       positions.set([x, y, z], i * 3);
@@ -35,42 +34,35 @@ const BlackHole = forwardRef(({ visible = true, ...props }, ref) => {
   }, []);
 
   useFrame((state, delta) => {
-    if (diskRef.current) diskRef.current.rotation.y += delta * 0.05;
-    if (innerDiskRef.current) innerDiskRef.current.rotation.y += delta * 0.08;
+    if (diskRef.current) diskRef.current.rotation.y += delta * 0.1; // Faster outer disk
+    if (innerDiskRef.current) innerDiskRef.current.rotation.y += delta * 0.2; // Faster inner for Doppler-like feel
 
     if (glowRef.current) {
-      glowRef.current.material.opacity =
-        0.15 + Math.sin(state.clock.elapsedTime * 2) * 0.05;
+      glowRef.current.material.opacity = 0.25 + Math.sin(state.clock.elapsedTime * 1.5) * 0.1;
     }
 
     if (horizonRef.current) {
-      horizonRef.current.scale.setScalar(
-        1 + Math.sin(state.clock.elapsedTime * 0.5) * 0.01
-      );
+      horizonRef.current.scale.setScalar(1 + Math.sin(state.clock.elapsedTime * 0.8) * 0.005);
     }
 
     if (fogRef.current) {
-      fogRef.current.material.opacity =
-        0.1 + Math.sin(state.clock.elapsedTime * 0.3) * 0.05;
+      fogRef.current.material.opacity = 0.15 + Math.sin(state.clock.elapsedTime * 0.4) * 0.08;
     }
 
     if (dustRef.current) {
-      dustRef.current.rotation.y += delta * 0.01;
+      dustRef.current.rotation.y += delta * 0.015;
     }
   });
 
   return (
     <group ref={ref} visible={visible} {...props}>
-      {/* Volumetric Foggy Glow */}
-      <Sphere ref={fogRef} args={[20, 64, 64]}>
+      {/* Volumetric outer glow - brighter white-blue for hotter plasma */}
+      <Sphere ref={fogRef} args={[22, 64, 64]}>
         <shaderMaterial
           transparent
           depthWrite={false}
           side={THREE.BackSide}
           blending={THREE.AdditiveBlending}
-          uniforms={{
-            uTime: { value: 0 },
-          }}
           vertexShader={/* glsl */ `
             varying vec3 vPosition;
             void main() {
@@ -81,75 +73,81 @@ const BlackHole = forwardRef(({ visible = true, ...props }, ref) => {
           fragmentShader={/* glsl */ `
             varying vec3 vPosition;
             void main() {
-              float intensity = 0.4 / length(vPosition);
-              gl_FragColor = vec4(1.0, 0.6, 0.3, intensity * 0.4);
+              float intensity = 0.6 / (length(vPosition) * length(vPosition));
+              vec3 color = mix(vec3(1.0, 0.8, 0.5), vec3(0.8, 0.9, 1.0), intensity * 2.0);
+              gl_FragColor = vec4(color, intensity * 0.6);
             }
           `}
         />
       </Sphere>
 
-      {/* Outer atmospheric glow */}
-      <Sphere ref={glowRef} args={[12, 64, 64]}>
+      {/* Additive glow ring - brighter and larger */}
+      <Torus ref={glowRef} args={[6, 2.5, 64, 256]} rotation={[Math.PI / 2, 0, 0]}>
         <meshBasicMaterial
-          color="#ffbb88"
+          color="#ffddaa"
           transparent
-          opacity={0.12}
-          side={THREE.BackSide}
+          opacity={0.3}
+          side={THREE.DoubleSide}
+          blending={THREE.AdditiveBlending}
           depthWrite={false}
         />
-      </Sphere>
+      </Torus>
 
-      {/* Event Horizon */}
+      {/* Event Horizon - pure black */}
       <Sphere ref={horizonRef} args={[2, 128, 128]}>
         <meshBasicMaterial color="black" />
       </Sphere>
 
-      {/* Photon Ring */}
-      <Sphere args={[2.05, 128, 128]}>
-        <meshStandardMaterial
-          emissive="#ffaa44"
-          emissiveIntensity={3.5}
-          color="black"
+      {/* Subtle red rim around horizon for photon ring effect */}
+      <Sphere args={[2.1, 128, 128]}>
+        <meshBasicMaterial
+          color="#ffaaaa"
           transparent
-          opacity={0.95}
+          opacity={0.4}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
         />
       </Sphere>
 
-      {/* Outer Accretion Disk */}
-      <Torus ref={diskRef} args={[5, 1.2, 64, 256]} rotation={[0.5, 0, 0]}>
+      {/* Outer accretion disk - orange, thicker, tilted */}
+      <Torus ref={diskRef} args={[7, 2.2, 32, 256]} rotation={[Math.PI / 2 + 0.2, 0.1, 0]}>
         <meshStandardMaterial
-          emissive="#ff6600"
-          emissiveIntensity={2.5}
-          color="#442200"
-          metalness={0.5}
-          roughness={0.6}
+          emissive="#ff8800"
+          emissiveIntensity={3.0}
+          color="#ffaa66"
+          metalness={0.8}
+          roughness={0.3}
           transparent
           opacity={0.95}
+          side={THREE.DoubleSide}
+          envMapIntensity={1.5}
         />
       </Torus>
 
-      {/* Inner Hot Disk */}
-      <Torus ref={innerDiskRef} args={[3.5, 0.8, 64, 256]} rotation={[0.5, 0, 0]}>
+      {/* Inner bright disk - white-hot, thinner, faster rotation */}
+      <Torus ref={innerDiskRef} args={[4, 1.0, 32, 256]} rotation={[Math.PI / 2 + 0.2, 0.1, 0]}>
         <meshStandardMaterial
-          emissive="#ffd9aa"
-          emissiveIntensity={4.0}
-          color="#aa5522"
-          metalness={0.4}
-          roughness={0.5}
+          emissive="#ffffff"
+          emissiveIntensity={5.0}
+          color="#ffffcc"
+          metalness={0.9}
+          roughness={0.2}
           transparent
-          opacity={0.95}
+          opacity={0.98}
+          side={THREE.DoubleSide}
         />
       </Torus>
 
-      {/* Dust Cloud */}
+      {/* Dust particles - warmer color, higher opacity */}
       <points ref={dustRef} geometry={dustGeometry}>
         <pointsMaterial
-          color="#ffaa88"
-          size={0.05}
+          color="#ffccaa"
+          size={0.08}
           sizeAttenuation
           transparent
-          opacity={0.6}
+          opacity={0.7}
           depthWrite={false}
+          blending={THREE.AdditiveBlending}
         />
       </points>
     </group>

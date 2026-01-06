@@ -1,139 +1,141 @@
-import React, { useState, useEffect, useMemo, Suspense } from 'react';
-import { Canvas, useLoader } from '@react-three/fiber';
-import { useTexture } from '@react-three/drei';
-import { TextureLoader } from 'three';
-import Cloud from './loader/Cloud';
-import CosmicBackground from './loader/CosmicBackground';
+import React, { useState, useEffect, memo } from 'react';
 import LoadingUI from './loader/LoadingUI';
 
-// --- Preload texture at module level so it’s cached before render ---
-useTexture.preload('/cloud.png');
-
-// 3D Scene for the loader
-function Loader3DScene({ revealProgress }) {
-  // Cached texture (avoids stalls on first render)
-  const cloudTexture = useLoader(TextureLoader, '/cloud.png');
-
-  // Generate cloud wall
-  const cloudWalls = useMemo(() => {
-    let clouds = [];
-    let side = 'left'
-    let dist = 0
-    for (let i = 0; i < 15; i++) {
-      if (side === 'left') side = 'right'
-      else side = 'left'
-      const zPos = -i * 0.8; // wider spacing in Z to avoid overdraw
-      clouds.push({
-        id: i,
-        side,
-        position: [
-          (side === 'left' ? -1 : 1) * (dist + Math.random() * 10),
-          (Math.random() - dist/20) * 25, // taller Y spread
-          zPos,
-        ],
-        scale: [20 + Math.random() * 10, 20 + Math.random() * 10, 1],
-        rotation: [0, 0, (Math.random() - 0.5) * Math.PI],
-        driftOffset: Math.random() * Math.PI * 2,
-      });
-      dist+=1
-    }
-    return clouds;
-  }, []);
-
-  return (
-    <>
-      <ambientLight intensity={0.3} />
-      <directionalLight
-        position={[0, 0, 15]}
-        intensity={0.5 + revealProgress * 0.5}
-        color="#8a2be2"
-      />
-      <pointLight
-        position={[0, 0, 5]}
-        intensity={revealProgress * 2}
-        color="#e91e63"
-        decay={2}
-      />
-      <CosmicBackground revealProgress={revealProgress} />
-      {cloudWalls.map((cloud) => (
-        <Cloud
-          key={cloud.id}
-          {...cloud}
-          texture={cloudTexture}
-          revealProgress={revealProgress}
-        />
-      ))}
-    </>
-  );
-}
-
-// Main Loader Overlay
-export default function LoaderOverlay({ show = true, onComplete }) {
+const LoaderOverlay = memo(({ show = true, onComplete }) => {
   const [isExiting, setIsExiting] = useState(false);
   const [fullyHidden, setFullyHidden] = useState(!show);
   const [progress, setProgress] = useState(0);
 
-  // Exit sequence
   useEffect(() => {
     if (!show && !isExiting) {
       setIsExiting(true);
       setTimeout(() => {
         setFullyHidden(true);
-        if (onComplete) onComplete();
-      }, 2000); // fade out duration
+        onComplete?.();
+      }, 2000);
     }
   }, [show, isExiting, onComplete]);
 
-  // Simulated loading progress (throttled)
   useEffect(() => {
-    if (show) {
-      const duration = 5000;
-      const startTime = Date.now();
-      let raf;
-      const updateProgress = () => {
-        const elapsed = Date.now() - startTime;
-        const newProgress = Math.min((elapsed / duration) * 100, 100);
-
-        // only update if changed by >1% to avoid stutters
-        setProgress((prev) =>
-          Math.abs(prev - newProgress) > 1 ? newProgress : prev
-        );
-
-        if (newProgress < 100) raf = requestAnimationFrame(updateProgress);
-      };
-      raf = requestAnimationFrame(updateProgress);
-      return () => cancelAnimationFrame(raf);
-    }
+    if (!show) return;
+    const duration = 5000;
+    const start = Date.now();
+    const tick = () => {
+      const elapsed = Date.now() - start;
+      const p = Math.min((elapsed / duration) * 100, 100);
+      setProgress(p);
+      if (p < 100) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
   }, [show]);
-
-  const revealProgress = progress / 100;
-
-  const overlayStyle = {
-    position: 'fixed',
-    inset: 0,
-    zIndex: 9999,
-    background: '#000',
-    opacity: isExiting ? 0 : 1,
-    visibility: fullyHidden ? 'hidden' : 'visible',
-    transition: `opacity 2s ease-out`,
-    transitionDelay: isExiting ? '0s, 2s' : '0s', 
-  };
 
   if (fullyHidden) return null;
 
   return (
-    <div style={overlayStyle}>
-      <Canvas
-        camera={{ position: [0, 0, 20], fov: 70 }}
-        gl={{ antialias: false, alpha: false }}
+    <>
+      <div
+        style={{
+          position: 'fixed',
+          inset: 0,
+          background: '#000',
+          zIndex: 9999,
+          opacity: isExiting ? 0 : 1,
+          visibility: fullyHidden ? 'hidden' : 'visible',
+          transition: 'opacity 2s cubic-bezier(0.4, 0, 0.2, 1)',
+          pointerEvents: 'none',
+          overflow: 'hidden',
+        }}
       >
-        <color attach="background" args={['#000000']} />
-        <fog attach="fog" args={['#000000', 10, 40]} />
-        <Suspense fallback={null}>
-          <Loader3DScene revealProgress={revealProgress} />
-        </Suspense>
-      </Canvas>
-      <LoadingUI progress={progress} isExiting={isExiting} />
-    </div>
+        {/* Deep space nebula layers with richer colors and movement */}
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background: `
+              radial-gradient(circle at 30% 70%, #2a004a 0%, transparent 40%),
+              radial-gradient(circle at 70% 30%, #4a0072 0%, transparent 45%),
+              radial-gradient(circle at 50% 50%, #120030 0%, transparent 50%),
+              #000000
+            `,
+            animation: 'slowPulse 15s ease-in-out infinite',
+          }}
+        />
+
+        {/* Swirling accretion-inspired glows */}
+        <div
+          style={{
+            position: 'absolute',
+            inset: '-100%',
+            background: 'radial-gradient(circle at center, rgba(255,140,0,0.12) 0%, rgba(255,200,100,0.08) 30%, transparent 60%)',
+            animation: 'swirlGlow 30s linear infinite',
+          }}
+        />
+        <div
+          style={{
+            position: 'absolute',
+            inset: '-100%',
+            background: 'radial-gradient(circle at center, rgba(100,200,255,0.1) 0%, rgba(255,100,200,0.06) 35%, transparent 65%)',
+            animation: 'swirlGlow 40s linear infinite reverse',
+          }}
+        />
+
+        {/* Central subtle event horizon "pull" effect */}
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background: 'radial-gradient(circle at center, transparent 30%, rgba(0,0,0,0.7) 50%, #000000 70%)',
+            animation: 'horizonBreathe 8s ease-in-out infinite',
+          }}
+        />
+
+        {/* Enhanced twinkling stars with more variety */}
+        {[...Array(120)].map((_, i) => (
+          <div
+            key={i}
+            style={{
+              position: 'absolute',
+              width: `${1 + Math.random() * 2}px`,
+              height: `${1 + Math.random() * 2}px`,
+              background: Math.random() > 0.7 ? '#a0c4ff' : '#ffffff',
+              borderRadius: '50%',
+              boxShadow: Math.random() > 0.5 ? '0 0 8px #ffffff' : 'none',
+              top: `${Math.random() * 100}%`,
+              left: `${Math.random() * 100}%`,
+              opacity: Math.random() * 0.6 + 0.3,
+              animation: `twinkle ${2 + Math.random() * 6}s ease-in-out infinite`,
+              animationDelay: `${Math.random() * 6}s`,
+            }}
+          />
+        ))}
+
+        {/* Loading UI centered */}
+        <LoadingUI progress={progress} isExiting={isExiting} />
+      </div>
+
+      {/* Inline keyframes for zero-load performance */}
+      <style jsx global>{`
+        @keyframes slowPulse {
+          0%, 100% { opacity: 0.7; transform: scale(1); }
+          50% { opacity: 1; transform: scale(1.08); }
+        }
+        @keyframes swirlGlow {
+          from { transform: rotate(0deg) translate(50px) rotate(0deg); }
+          to { transform: rotate(360deg) translate(50px) rotate(-360deg); }
+        }
+        @keyframes horizonBreathe {
+          0%, 100% { opacity: 0.4; }
+          50% { opacity: 0.6; }
+        }
+        @keyframes twinkle {
+          0%, 100% { opacity: 0.3; transform: scale(0.8); }
+          50% { opacity: 1; transform: scale(1.2); }
+        }
+      `}</style>
+    </>
   );
-}
+});
+
+LoaderOverlay.displayName = 'LoaderOverlay';
+
+export default LoaderOverlay;

@@ -3,12 +3,8 @@ import { useFrame, useLoader } from "@react-three/fiber";
 import { Float } from "@react-three/drei";
 import * as THREE from "three";
 
-// Enable the new ColorManagement API
 THREE.ColorManagement.enabled = true;
 
-/**
- * TechLogo - floating tech node
- */
 function TechLogo({
   name,
   position = [0, 0, 0],
@@ -83,9 +79,6 @@ function TechLogo({
   );
 }
 
-/**
- * BinarySystem - 3D tech cluster
- */
 export default function BinarySystem({
   radius = 7,
   starSize = 1.6,
